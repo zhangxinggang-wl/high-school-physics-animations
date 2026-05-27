@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>天体追及相遇动画 | 张兴刚工作室</title>
+    <style>
+        * {
+            user-select: none; /* 避免拖动干扰，但保留文字复制 */
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #03071e 0%, #000000 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Poppins', 'Roboto', 'Fira Code', monospace;
+            padding: 20px;
+        }
+        /* 主容器 - 自适应卡片风格 */
+        .sim-container {
+            background: rgba(10, 20, 40, 0.55);
+            backdrop-filter: blur(4px);
+            border-radius: 3rem;
+            padding: 1.2rem 1.8rem 1.8rem 1.8rem;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1);
+            border: 1px solid rgba(72, 187, 255, 0.3);
+            position: relative;
+        }
+        /* 右上角工作室标识 */
+        .studio-badge {
+            position: absolute;
+            top: 18px;
+            right: 24px;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(8px);
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #ffd966;
+            border: 1px solid rgba(255, 200, 100, 0.5);
+            letter-spacing: 1px;
+            font-family: 'Segoe UI', 'Poppins', monospace;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .studio-badge::before {
+            content: "⚡";
+            margin-right: 6px;
+            font-size: 0.9rem;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 28px;
+            box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2), 0 20px 35px rgba(0,0,0,0.5);
+            background: radial-gradient(circle at 30% 20%, #0a1022, #010003);
+            cursor: pointer;
+        }
+        /* 公式栏 – 醒目展示 */
+        .formula-bar {
+            background: #0b1120e0;
+            border-left: 6px solid #f0b27a;
+            border-radius: 2rem;
+            padding: 0.7rem 1.5rem;
+            margin-bottom: 1.2rem;
+            text-align: center;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 5px 12px rgba(0,0,0,0.3);
+        }
+        .formula {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            font-family: 'Courier New', 'Fira Code', monospace;
+            color: #FFE6B0;
+            text-shadow: 0 0 8px #ffa500;
+        }
+        .formula sub, .formula sup {
+            font-size: 0.9rem;
+        }
+        .formula-desc {
+            font-size: 0.8rem;
+            color: #9bb4ff;
+            margin-top: 4px;
+        }
+        /* 中部主标题 */
+        .main-title {
+            text-align: center;
+            margin: -0.5rem 0 0.8rem 0;
+            font-size: 1.7rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #FFE6B0, #FFB347);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 12px rgba(255,180,60,0.4);
+            font-family: 'Segoe UI', 'Poppins', system-ui;
+        }
+        /* 实时面板 - 网格布局 */
+        .data-panel {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 1rem;
+            margin: 1rem 0 1.2rem 0;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 0.8rem 1.2rem;
+            border-radius: 2rem;
+            backdrop-filter: blur(4px);
+            font-weight: 500;
+        }
+        .card {
+            background: #0f172ad9;
+            border-radius: 1.5rem;
+            padding: 0.4rem 1rem;
+            flex: 1;
+            min-width: 110px;
+            text-align: center;
+            border: 1px solid #3b4b7a;
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .card-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7d9eff;
+        }
+        .card-value {
+            font-size: 1.35rem;
+            font-weight: bold;
+            font-family: monospace;
+            color: #f0f3ff;
+        }
+        .highlight {
+            color: #ffdd77;
+            text-shadow: 0 0 3px #ffaa33;
+        }
+        .meet-badge {
+            background: #ffc10722;
+            border: 1px solid #ffbb44;
+        }
+        /* 参数调节区 */
+        .controls {
+            display: flex;
+            gap: 1.8rem;
+            justify-content: center;
+            margin-top: 1rem;
+            background: #050a15b3;
+            padding: 0.7rem 1.2rem;
+            border-radius: 2rem;
+            flex-wrap: wrap;
+        }
+        .ctrl-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #01051866;
+            padding: 5px 14px;
+            border-radius: 3rem;
+        }
+        .ctrl-group label {
+            font-weight: 600;
+            color: #c3d1ff;
+            font-size: 0.9rem;
+        }
+        .ctrl-group input {
+            background: #1e2a47;
+            border: none;
+            color: #ffd966;
+            font-weight: bold;
+            font-size: 1rem;
+            width: 70px;
+            padding: 6px 10px;
+            border-radius: 2rem;
+            text-align: center;
+            font-family: monospace;
+            outline: none;
+            transition: 0.1s;
+        }
+        .ctrl-group input:focus {
+            box-shadow: 0 0 0 2px #f5b042;
+            background: #2a3c66;
+        }
+        button {
+            background: #2c3e66;
+            border: none;
+            font-weight: bold;
+            padding: 4px 14px;
+            border-radius: 2rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #4a6e9e;
+            transform: scale(0.97);
+        }
+        .speed-note {
+            font-size: 0.7rem;
+            color: #99aae6;
+            text-align: center;
+            margin-top: 8px;
+        }
+        @media (max-width: 700px) {
+            .formula { font-size: 1rem; }
+            .card-value { font-size: 1rem; }
+            .sim-container { padding: 0.8rem; }
+            .main-title { font-size: 1.2rem; margin-top: 0.2rem; }
+            .studio-badge { font-size: 0.7rem; top: 12px; right: 14px; padding: 3px 10px; }
+        }
+        footer {
+            font-size: 10px;
+            text-align: center;
+            color: #4a6080;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <div class="sim-container">
+        <!-- 右上角工作室 -->
+        <div class="studio-badge">张兴刚工作室制作</div>
+        
+        <!-- 中间主标题 -->
+        <div class="main-title">✨ 天体追及相遇 ✨</div>
+        
+        <!-- 顶部核心公式 -->
+        <div class="formula-bar">
+            <div class="formula">🎯 追及核心公式 🎯 &nbsp; t = 2π / (ω₁ − ω₂) &nbsp; (ω₁ > ω₂)</div>
+            <div class="formula-desc">相对角速度 | 当角度差 = 0 或 2π 整数倍时相遇 | 动态闪烁提示</div>
+        </div>
+
+        <!-- canvas 动画区域 900x550 -->
+        <canvas id="orbitCanvas" width="900" height="550" style="width:100%; height:auto; max-width:900px; aspect-ratio:900/550"></canvas>
+
+        <!-- 实时数据面板 -->
+        <div class="data-panel" id="dataPanel">
+            <!-- 动态填充js内容 -->
+        </div>
+
+        <!-- 参数可调：直接修改 p1.speed / p2.speed -->
+        <div class="controls">
+            <div class="ctrl-group">
+                <label>🌟 行星1 角速度 ω₁ (rad/s)</label>
+                <input type="number" id="speed1" step="0.05" value="1.20" style="width:80px">
+                <button id="applyBtn">更新</button>
+            </div>
+            <div class="ctrl-group">
+                <label>🌙 行星2 角速度 ω₂ (rad/s)</label>
+                <input type="number" id="speed2" step="0.05" value="0.65" style="width:80px">
+                <button id="applyBtn2">更新</button>
+            </div>
+            <div class="ctrl-group">
+                <button id="resetDefault">重置经典 (1.2 / 0.65)</button>
+            </div>
+        </div>
+        <div class="speed-note">
+            💡 提示：修改角速度后自动计算追及时间，行星靠近时相遇闪烁提示 (黄色光圈 + 星体闪烁)。<br>
+            追及条件: 当角度差接近0°(模360°) 触发相遇闪烁。
+        </div>
+        <footer>基于相对角速度模拟 | 相遇时自动高亮闪烁 | 实时更新 t = 2π/|Δω|</footer>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // ----- 获取canvas元素 ------
+        const canvas = document.getElementById('orbitCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 初始参数 (角速度 rad/s)
+        let omega1 = 1.20;   // 行星1 角速度  rad/s
+        let omega2 = 0.65;   // 行星2 角速度
+        
+        // 角度 (弧度) 起始位置错开一点便于观察追及，但相遇会自然发生
+        let angle1 = 0.0;
+        let angle2 = 1.8;    // 错开约103度，展示追及动态
+        
+        // 动画控制
+        let lastTimestamp = 0;
+        let lastTimeSeconds = null;
+        let animationId = null;
+        
+        // 相遇闪烁状态控制: 闪烁计数器(帧数闪烁) 以及 触发标志
+        let meetFlash = 0;          // >0 表示闪烁动画活跃，每帧递减
+        let lastAngleDiffDeg = null; // 用于判断相遇时刻的上升沿
+        
+        // 轨道参数: 同心圆半径不同 (内圈外圈视觉)
+        const radius1 = 140;   // 行星1轨道半径 (内轨)
+        const radius2 = 220;   // 行星2轨道半径 (外轨)
+        const centerX = 450;    // 画布中心X (900/2)
+        const centerY = 275;    // 画布中心Y (550/2)
+        
+        // 为了视觉: 行星大小
+        const planet1Size = 18;
+        const planet2Size = 22;
+        
+        // 辅助UI元素
+        const speed1Input = document.getElementById('speed1');
+        const speed2Input = document.getElementById('speed2');
+        const applyBtn = document.getElementById('applyBtn');
+        const applyBtn2 = document.getElementById('applyBtn2');
+        const resetBtn = document.getElementById('resetDefault');
+        
+        // 数据面板DOM
+        const dataPanelDiv = document.getElementById('dataPanel');
+        
+        // ---------- 更新公式实时显示 & 追及时间 ----------
+        function computeMeetTime() {
+            let deltaOmega = Math.abs(omega1 - omega2);
+            if(deltaOmega < 1e-8) return Infinity;
+            let meetTime = (2 * Math.PI) / deltaOmega;
+            return meetTime;
+        }
+        
+        // 获取角度差 (范围 -180..180 便于显示)
+        function getAngleDifferenceDeg() {
+            let diffRad = angle1 - angle2;
+            // 归一化到 -PI 到 PI 范围
+            let normDiff = Math.atan2(Math.sin(diffRad), Math.cos(diffRad));
+            let deg = normDiff * 180 / Math.PI;
+            return deg;
+        }
+        
+        function getAngleDifferenceAbsDeg() {
+            let diff = getAngleDifferenceDeg();
+            return Math.abs(diff);
+        }
+        
+        // 判断是否相遇 (角度差绝对值小于阈值 6度)
+        function isMeetingCondition() {
+            let diffDegAbs = getAngleDifferenceAbsDeg();
+            return diffDegAbs <= 6.0;
+        }
+        
+        // 更新数据面板并检测闪烁上升沿
+        function updateDataPanelAndFlash() {
+            // 当前角度 (角度制)
+            let deg1 = (angle1 * 180 / Math.PI) % 360;
+            let deg2 = (angle2 * 180 / Math.PI) % 360;
+            if(deg1 < 0) deg1 += 360;
+            if(deg2 < 0) deg2 += 360;
+            let diffDeg = getAngleDifferenceDeg();
+            let absDiff = Math.abs(diffDeg);
+            let meetTimeVal = computeMeetTime();
+            let meetTimeShow = (meetTimeVal === Infinity) ? "∞ (同步永不相遇)" : meetTimeVal.toFixed(2) + " 秒";
+            
+            // 相遇状态实时判断并闪烁
+            let isMeetingNow = isMeetingCondition();
+            
+            // 闪烁触发逻辑: 相遇区域内维持高闪烁值
+            if(isMeetingNow) {
+                if(meetFlash < 18) meetFlash = 18;   // 持续闪烁约0.3秒 (60fps下)
+            } else {
+                if(meetFlash > 0) meetFlash -= 1;
+                else meetFlash = 0;
+            }
+            
+            // 更新HTML面板
+            dataPanelDiv.innerHTML = `
+                <div class="card"><div class="card-title">🌕 行星1 ω₁</div><div class="card-value">${omega1.toFixed(3)} rad/s</div><div class="card-title">角度: ${deg1.toFixed(1)}°</div></div>
+                <div class="card"><div class="card-title">🌖 行星2 ω₂</div><div class="card-value">${omega2.toFixed(3)} rad/s</div><div class="card-title">角度: ${deg2.toFixed(1)}°</div></div>
+                <div class="card"><div class="card-title">📐 角度差 |Δθ|</div><div class="card-value ${absDiff < 8 ? 'highlight' : ''}">${absDiff.toFixed(2)}°</div><div class="card-title">最近相遇阈值 ≤6°</div></div>
+                <div class="card ${isMeetingNow ? 'meet-badge' : ''}"><div class="card-title">⏱️ 追及时间 t</div><div class="card-value">${meetTimeShow}</div><div class="card-title">相对角速度: ${(Math.abs(omega1-omega2)).toFixed(4)} rad/s</div></div>
+            `;
+            
+            return isMeetingNow;
+        }
+        
+        // ---------- 渲染轨道, 行星, 闪烁效果 ----------
+        function drawScene() {
+            if(!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            // 绘制轨道线: 内圈外圈
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius1, 0, 2*Math.PI);
+            ctx.strokeStyle = "#4f7daa66";
+            ctx.lineWidth = 1.8;
+            ctx.setLineDash([6, 12]);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius2, 0, 2*Math.PI);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // 中心恒星 (光晕)
+            const grad = ctx.createRadialGradient(centerX-5, centerY-5, 5, centerX, centerY, 28);
+            grad.addColorStop(0, '#FFD966');
+            grad.addColorStop(1, '#FF8C42');
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "#ffaa44";
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 24, 0, 2*Math.PI);
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 10, 0, 2*Math.PI);
+            ctx.fillStyle = "#FFE484";
+            ctx.fill();
+            
+            // 计算行星坐标
+            let x1 = centerX + radius1 * Math.cos(angle1);
+            let y1 = centerY + radius1 * Math.sin(angle1);
+            let x2 = centerX + radius2 * Math.cos(angle2);
+            let y2 = centerY + radius2 * Math.sin(angle2);
+            
+            // 是否闪烁
+            let isFlashing = (meetFlash > 0);
+            
+            // 外发光闪烁效果：若相遇区域，加黄色外发光 + 脉动
+            if(isFlashing) {
+                // 闪烁光圈: 两个行星都闪烁，动态脉动
+                ctx.beginPath();
+                ctx.arc(x1, y1, planet1Size + 6 + 3*Math.sin(Date.now() * 0.02), 0, 2*Math.PI);
+                ctx.fillStyle = `rgba(255, 220, 80, ${0.5 + 0.3*Math.sin(Date.now()*0.025)})`;
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(x2, y2, planet2Size + 6 + 3*Math.sin(Date.now() * 0.02 + 1), 0, 2*Math.PI);
+                ctx.fillStyle = `rgba(255, 200, 60, ${0.5 + 0.3*Math.cos(Date.now()*0.025)})`;
+                ctx.fill();
+            }
+            
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = "#ffcc88";
+            // 画行星1 (内轨)
+            let grad1 = ctx.createRadialGradient(x1-4, y1-4, 3, x1, y1, planet1Size);
+            grad1.addColorStop(0, '#F9D976');
+            grad1.addColorStop(1, '#F39F86');
+            ctx.beginPath();
+            ctx.arc(x1, y1, planet1Size, 0, 2*Math.PI);
+            ctx.fillStyle = grad1;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x1, y1, planet1Size-4, 0, 2*Math.PI);
+            ctx.fillStyle = "#FFB347";
+            ctx.fill();
+            
+            // 行星2 (外轨 淡蓝绿)
+            let grad2 = ctx.createRadialGradient(x2-5, y2-5, 4, x2, y2, planet2Size);
+            grad2.addColorStop(0, '#8EC5FC');
+            grad2.addColorStop(1, '#6A9CFF');
+            ctx.beginPath();
+            ctx.arc(x2, y2, planet2Size, 0, 2*Math.PI);
+            ctx.fillStyle = grad2;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x2, y2, planet2Size-5, 0, 2*Math.PI);
+            ctx.fillStyle = "#B0D4FF";
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            // 标记文字
+            ctx.font = "bold 14px 'Segoe UI'";
+            ctx.fillStyle = "#ffe6c7";
+            ctx.shadowBlur = 4;
+            ctx.fillText("ω₁ 内轨", x1-20, y1-12);
+            ctx.fillText("ω₂ 外轨", x2-20, y2-14);
+            
+            // 绘制角度指示线 (虚线)
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(x1, y1);
+            ctx.strokeStyle = "#ffb34766";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([6,8]);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // 额外相遇视觉: 如果正在闪烁且角度差极小，增加提示文本
+            if(isFlashing && getAngleDifferenceAbsDeg() <= 8) {
+                ctx.font = "bold 22px 'Segoe UI'";
+                ctx.fillStyle = "#ffdd88";
+                ctx.shadowBlur = 8;
+                ctx.fillText("✨ 相遇时刻 ✨", centerX-70, centerY-70);
+            }
+            ctx.restore();
+        }
+        
+        // 动画更新角度 (基于时间差)
+        let lastFrameTime = null;
+        function animate(currentTimeMs) {
+            if(!lastFrameTime) {
+                lastFrameTime = currentTimeMs;
+                requestAnimationFrame(animate);
+                drawScene();
+                updateDataPanelAndFlash();
+                return;
+            }
+            let deltaMs = Math.min(100, currentTimeMs - lastFrameTime);
+            let deltaSec = deltaMs / 1000.0;
+            if(deltaSec > 0.02) deltaSec = 0.02;
+            
+            // 更新角度
+            angle1 += omega1 * deltaSec;
+            angle2 += omega2 * deltaSec;
+            angle1 = angle1 % (2*Math.PI);
+            angle2 = angle2 % (2*Math.PI);
+            
+            // 更新面板以及闪烁逻辑
+            updateDataPanelAndFlash();
+            drawScene();
+            
+            lastFrameTime = currentTimeMs;
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // 重置角度便于观察追及
+        function resetAnglesToDemo() {
+            angle1 = 0.0;
+            angle2 = 1.85;   // 约106度
+            meetFlash = 0;
+        }
+        
+        // 应用新的角速度
+        function setOmega1(value) {
+            let newVal = parseFloat(value);
+            if(!isNaN(newVal) && newVal > 0.05 && newVal < 5.0) {
+                omega1 = newVal;
+            } else {
+                speed1Input.value = omega1;
+            }
+            meetFlash = 0;
+            updateDataPanelAndFlash();
+        }
+        
+        function setOmega2(value) {
+            let newVal = parseFloat(value);
+            if(!isNaN(newVal) && newVal > 0.05 && newVal < 5.0) {
+                omega2 = newVal;
+            } else {
+                speed2Input.value = omega2;
+            }
+            meetFlash = 0;
+            updateDataPanelAndFlash();
+        }
+        
+        function applyBoth() {
+            setOmega1(speed1Input.value);
+            setOmega2(speed2Input.value);
+            updateDataPanelAndFlash();
+        }
+        
+        function resetDefaultSettings() {
+            omega1 = 1.20;
+            omega2 = 0.65;
+            speed1Input.value = "1.20";
+            speed2Input.value = "0.65";
+            resetAnglesToDemo();
+            meetFlash = 0;
+            updateDataPanelAndFlash();
+            drawScene();
+        }
+        
+        // 绑定事件
+        applyBtn.addEventListener('click', () => {
+            setOmega1(speed1Input.value);
+            updateDataPanelAndFlash();
+        });
+        applyBtn2.addEventListener('click', () => {
+            setOmega2(speed2Input.value);
+            updateDataPanelAndFlash();
+        });
+        resetBtn.addEventListener('click', resetDefaultSettings);
+        
+        speed1Input.addEventListener('change', () => setOmega1(speed1Input.value));
+        speed2Input.addEventListener('change', () => setOmega2(speed2Input.value));
+        
+        // 初始化
+        function init() {
+            resetAnglesToDemo();
+            updateDataPanelAndFlash();
+            drawScene();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        window.addEventListener('beforeunload', ()=>{
+            if(animationId) cancelAnimationFrame(animationId);
+        });
+        
+        init();
+    })();
+</script>
+</body>
+</html>

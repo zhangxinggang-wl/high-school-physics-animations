@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>高中物理：雨伞离心运动 | 可调参数模拟 | 张兴刚工作室</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Microsoft YaHei', 'SimHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        /* 左上角信息区 - 精简 */
+        #info {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 100;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            pointer-events: none;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+            border-left: 3px solid #ffaa66;
+            font-size: 12px;
+            max-width: 280px;
+        }
+        #info h1 {
+            margin: 0 0 3px;
+            font-size: 14px;
+        }
+        #info p {
+            margin: 0;
+            font-size: 10px;
+            opacity: 0.8;
+            line-height: 1.3;
+        }
+        .highlight {
+            color: #ffaa66;
+            font-weight: bold;
+        }
+        
+        /* 工作室署名 - 左下角，优雅简洁 */
+        .studio-credit {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            z-index: 100;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(4px);
+            color: #ccddff;
+            font-size: 12px;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            padding: 5px 12px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+            pointer-events: none;
+            border-left: 2px solid #ffaa66;
+            font-weight: 400;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .studio-credit span {
+            color: #ffaa66;
+            font-weight: 500;
+        }
+        
+        /* 可调节控制面板 - 右上角 更小更紧凑，避免遮挡主场景 */
+        .controls-card {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 200;
+            background: rgba(15, 20, 30, 0.85);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-family: monospace;
+            pointer-events: auto;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            width: 210px;
+            transition: 0.2s;
+        }
+        .controls-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            text-align: center;
+            color: #ffcc88;
+            letter-spacing: 1px;
+        }
+        .control-group {
+            margin-bottom: 8px;
+        }
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 11px;
+            letter-spacing: 0.3px;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            background: #2a3a4a;
+            height: 3px;
+            border-radius: 3px;
+            -webkit-appearance: none;
+        }
+        input[type="range"]:focus {
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ffaa66;
+            cursor: pointer;
+            box-shadow: 0 0 2px white;
+        }
+        .param-value-display {
+            color: #ffaa66;
+            font-weight: bold;
+            background: #00000044;
+            padding: 1px 5px;
+            border-radius: 20px;
+            font-size: 10px;
+        }
+        .formula-note {
+            font-size: 9px;
+            text-align: center;
+            margin-top: 8px;
+            border-top: 1px solid #446688;
+            padding-top: 6px;
+            color: #bbddff;
+            display: flex;
+            justify-content: space-between;
+        }
+        .formula-note div {
+            flex: 1;
+        }
+        .status-badge {
+            font-size: 9px;
+            background: #2a4c7a88;
+            display: block;
+            border-radius: 12px;
+            padding: 2px 6px;
+            margin-top: 6px;
+            text-align: center;
+            width: auto;
+            color: #ccddff;
+        }
+        @media (max-width: 640px) {
+            .controls-card { width: 190px; padding: 8px 10px; top: 12px; right: 12px; }
+            .control-group label { font-size: 10px; }
+            .formula-note { font-size: 8px; }
+            #info { max-width: 200px; padding: 6px 10px; top: 12px; left: 12px; }
+            #info h1 { font-size: 12px; }
+            .studio-credit { font-size: 9px; bottom: 12px; left: 12px; padding: 3px 10px; }
+        }
+        .note {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            z-index: 100;
+            background: rgba(0,0,0,0.45);
+            color: #ccc;
+            font-size: 9px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>☔ 雨伞离心运动 | 水滴平抛 | <span class="highlight">r = √[R²+(ωR·√(2h/g))²]</span></h1>
+        <p>伞半径 <span class="highlight">R</span> | 角速度 <span class="highlight">ω</span> | 高度 <span class="highlight">h</span> → 落点半径动态更新</p>
+    </div>
+    
+    <!-- 张兴刚工作室制作 署名 (左下角) -->
+    <div class="studio-credit">
+        🧪 <span>张兴刚工作室</span> 制作 | 物理视觉模拟
+    </div>
+    
+    <div class="controls-card">
+        <h3>⚙️ 参数调节</h3>
+        <div class="control-group">
+            <label>🌂 半径 R <span id="R_val_display" class="param-value-display">1.20 m</span></label>
+            <input type="range" id="R_slider" min="0.6" max="1.8" step="0.01" value="1.20">
+        </div>
+        <div class="control-group">
+            <label>🌀 角速度 ω <span id="omega_val_display" class="param-value-display">3.00 rad/s</span></label>
+            <input type="range" id="omega_slider" min="1.5" max="5.5" step="0.05" value="3.00">
+        </div>
+        <div class="control-group">
+            <label>📏 伞高 h <span id="h_val_display" class="param-value-display">2.50 m</span></label>
+            <input type="range" id="h_slider" min="1.0" max="4.5" step="0.02" value="2.50">
+        </div>
+        <div class="control-group">
+            <label>🌍 重力 g <span id="g_val_display" class="param-value-display">9.80 m/s²</span></label>
+            <input type="range" id="g_slider" min="4.0" max="15.0" step="0.1" value="9.80">
+        </div>
+        <div class="formula-note">
+            <div>📐 落点半径 <strong id="r_calc_display">---</strong> m</div>
+            <div>🔄 验证高度 <strong id="h_calc_display">---</strong> m</div>
+        </div>
+        <div class="status-badge">
+            ✨ 水滴沿切线飞出 | 圆环实时更新
+        </div>
+    </div>
+    <div class="note">
+        🖱️ 鼠标拖拽旋转视角 | 滚动缩放 | 滑块实时调节
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // --- DOM 元素绑定 ---
+        const R_slider = document.getElementById('R_slider');
+        const omega_slider = document.getElementById('omega_slider');
+        const h_slider = document.getElementById('h_slider');
+        const g_slider = document.getElementById('g_slider');
+        const R_display = document.getElementById('R_val_display');
+        const omega_display = document.getElementById('omega_val_display');
+        const h_display = document.getElementById('h_val_display');
+        const g_display = document.getElementById('g_val_display');
+        const r_calc_display = document.getElementById('r_calc_display');
+        const h_calc_display = document.getElementById('h_calc_display');
+
+        // --- 全局场景物体 ---
+        let scene, camera, renderer, labelRenderer, controls;
+        let umbrellaGroup;
+        let landingRing;
+        let shadowRing;
+        let dashLines = [];
+        let waterDrops = [];
+        let splashMarkers = [];
+        let markerIndex = 0;
+        let spinRingObj;
+        let auraPoints;
+        
+        let label_R, label_r, label_h, label_omega;
+        
+        let currentParams = {
+            R: 1.20,
+            omega: 3.00,
+            h: 2.50,
+            g: 9.80
+        };
+        
+        let dropMeshes = [];
+        
+        // 物理计算
+        function computePhysics(R, omega, h, g) {
+            const v0 = omega * R;
+            const t = Math.sqrt(2 * h / g);
+            const s = v0 * t;
+            const r = Math.sqrt(R * R + s * s);
+            const h_verify = (g * (r * r - R * R)) / (2 * omega * omega * R * R);
+            return { r, h_verify, v0, t, s };
+        }
+        
+        function updateUI() {
+            const { R, omega, h, g } = currentParams;
+            R_display.innerText = R.toFixed(2) + ' m';
+            omega_display.innerText = omega.toFixed(2) + ' rad/s';
+            h_display.innerText = h.toFixed(2) + ' m';
+            g_display.innerText = g.toFixed(2) + ' m/s²';
+            const { r, h_verify } = computePhysics(R, omega, h, g);
+            r_calc_display.innerText = r.toFixed(3);
+            h_calc_display.innerText = h_verify.toFixed(3);
+        }
+        
+        // 重建所有依赖参数的几何体与水滴系统
+        function rebuildSceneFromParams() {
+            const { R, omega, h, g } = currentParams;
+            const { r, v0, t_fall } = computePhysics(R, omega, h, g);
+            
+            // 1. 落点圆环
+            if (landingRing) scene.remove(landingRing);
+            const ringPoints = [];
+            const segments = 128;
+            for (let i = 0; i <= segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                const x = r * Math.cos(angle);
+                const z = r * Math.sin(angle);
+                ringPoints.push(x, 0, z);
+            }
+            const ringGeo = new THREE.BufferGeometry();
+            ringGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ringPoints), 3));
+            const ringMat = new THREE.LineBasicMaterial({ color: 0xffaa66 });
+            landingRing = new THREE.LineLoop(ringGeo, ringMat);
+            landingRing.position.y = 0.02;
+            scene.add(landingRing);
+            
+            // 2. 伞投影虚线环 (半径R)
+            if (shadowRing) scene.remove(shadowRing);
+            const shadowPoints = [];
+            for (let i = 0; i <= segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                const x = R * Math.cos(angle);
+                const z = R * Math.sin(angle);
+                shadowPoints.push(x, 0, z);
+            }
+            const shadowGeo = new THREE.BufferGeometry();
+            shadowGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(shadowPoints), 3));
+            const shadowMat = new THREE.LineBasicMaterial({ color: 0x88aaff, transparent: true, opacity: 0.5 });
+            shadowRing = new THREE.LineLoop(shadowGeo, shadowMat);
+            shadowRing.position.y = 0.015;
+            scene.add(shadowRing);
+            
+            // 3. 虚线束
+            dashLines.forEach(line => scene.remove(line));
+            dashLines = [];
+            const dashCount = 24;
+            for (let i = 0; i < dashCount; i++) {
+                const angle = (i / dashCount) * Math.PI * 2;
+                const dx = Math.cos(angle);
+                const dz = Math.sin(angle);
+                const start = new THREE.Vector3(R * dx, h, R * dz);
+                const end = new THREE.Vector3(R * dx, 0, R * dz);
+                const dashGeo = new THREE.BufferGeometry().setFromPoints([start, end]);
+                const lineMat = new THREE.LineBasicMaterial({ color: 0x6a8dae, transparent: true, opacity: 0.3 });
+                const dashLine = new THREE.Line(dashGeo, lineMat);
+                scene.add(dashLine);
+                dashLines.push(dashLine);
+            }
+            
+            // 4. 雨伞模型
+            if (umbrellaGroup) scene.remove(umbrellaGroup);
+            umbrellaGroup = createUmbrellaModel(R, h);
+            scene.add(umbrellaGroup);
+            
+            // 5. 装饰旋转环
+            if (spinRingObj) scene.remove(spinRingObj);
+            const spinRingGeo = new THREE.TorusGeometry(R + 0.03, 0.035, 32, 100);
+            const spinRingMat = new THREE.MeshStandardMaterial({ color: 0xff8844, emissive: 0x442200 });
+            spinRingObj = new THREE.Mesh(spinRingGeo, spinRingMat);
+            spinRingObj.rotation.x = Math.PI / 2;
+            spinRingObj.position.y = h + 0.08;
+            scene.add(spinRingObj);
+            
+            // 6. 雾气粒子 (氛围)
+            if (auraPoints) scene.remove(auraPoints);
+            const auraCount = 180;
+            const auraPositions = new Float32Array(auraCount * 3);
+            for (let i = 0; i < auraCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const rad = R + 0.05 + Math.random() * 0.28;
+                const x = Math.cos(angle) * rad;
+                const z = Math.sin(angle) * rad;
+                auraPositions[i*3] = x;
+                auraPositions[i*3+1] = h - 0.1 + Math.random() * 0.3;
+                auraPositions[i*3+2] = z;
+            }
+            const auraGeo = new THREE.BufferGeometry();
+            auraGeo.setAttribute('position', new THREE.BufferAttribute(auraPositions, 3));
+            const auraMaterial = new THREE.PointsMaterial({ color: 0x88ccff, size: 0.035, transparent: true, opacity: 0.4 });
+            auraPoints = new THREE.Points(auraGeo, auraMaterial);
+            scene.add(auraPoints);
+            
+            // 7. 水滴系统完全重建
+            waterDrops.forEach(drop => { if(drop.mesh) scene.remove(drop.mesh); });
+            waterDrops = [];
+            const DROP_COUNT = 52;
+            const dropMaterial = new THREE.MeshStandardMaterial({ color: 0x5ac8fa, emissive: 0x2277aa, emissiveIntensity: 0.3, metalness: 0.7, roughness: 0.2 });
+            const tFallActual = Math.sqrt(2 * h / g);
+            const DROP_LIFESPAN = tFallActual + 0.35;
+            
+            class WaterDrop {
+                constructor(mesh, startPos, velocity, birthTime) {
+                    this.mesh = mesh;
+                    this.startPos = startPos.clone();
+                    this.velocity = velocity.clone();
+                    this.birthTime = birthTime;
+                    this.active = true;
+                    this.hasLanded = false;
+                }
+                update(currentTime, groundY) {
+                    if (!this.active) return;
+                    const elapsed = currentTime - this.birthTime;
+                    if (elapsed > DROP_LIFESPAN) {
+                        this.reset(currentTime);
+                        return;
+                    }
+                    const t = elapsed;
+                    const newX = this.startPos.x + this.velocity.x * t;
+                    const newZ = this.startPos.z + this.velocity.z * t;
+                    const newY = this.startPos.y - 0.5 * g * t * t;
+                    if (newY <= groundY && !this.hasLanded) {
+                        this.hasLanded = true;
+                        this.mesh.material.emissiveIntensity = 0.8;
+                        const marker = splashMarkers[markerIndex % splashMarkers.length];
+                        if (marker) {
+                            marker.position.set(newX, 0.04, newZ);
+                            marker.visible = true;
+                            setTimeout(() => { if(marker) marker.visible = false; }, 300);
+                            markerIndex++;
+                        }
+                    }
+                    if (newY < groundY) {
+                        this.mesh.position.y = groundY + 0.02;
+                    } else {
+                        this.mesh.position.set(newX, newY, newZ);
+                    }
+                }
+                reset(currentTime) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const cosA = Math.cos(angle);
+                    const sinA = Math.sin(angle);
+                    const startX = R * cosA;
+                    const startZ = R * sinA;
+                    this.startPos.set(startX, h, startZ);
+                    const vTangent = omega * R;
+                    const vx = -vTangent * sinA;
+                    const vz = vTangent * cosA;
+                    this.velocity.set(vx, 0, vz);
+                    this.birthTime = currentTime;
+                    this.hasLanded = false;
+                    this.mesh.position.set(startX, h, startZ);
+                    this.mesh.material.emissiveIntensity = 0.3;
+                    this.active = true;
+                }
+            }
+            
+            const nowTime = performance.now() / 1000;
+            for (let i = 0; i < DROP_COUNT; i++) {
+                const geometry = new THREE.SphereGeometry(0.055, 12, 12);
+                const dropMesh = new THREE.Mesh(geometry, dropMaterial.clone());
+                dropMesh.castShadow = true;
+                scene.add(dropMesh);
+                const angleInit = Math.random() * Math.PI * 2;
+                const cosA = Math.cos(angleInit);
+                const sinA = Math.sin(angleInit);
+                const startX = R * cosA;
+                const startZ = R * sinA;
+                const vTangent = omega * R;
+                const vx = -vTangent * sinA;
+                const vz = vTangent * cosA;
+                const startTime = nowTime - Math.random() * DROP_LIFESPAN;
+                const startPos = new THREE.Vector3(startX, h, startZ);
+                const velocity = new THREE.Vector3(vx, 0, vz);
+                const drop = new WaterDrop(dropMesh, startPos, velocity, startTime);
+                waterDrops.push(drop);
+                dropMeshes.push(dropMesh);
+            }
+            
+            // 更新CSS2D文字标签
+            if (label_R) {
+                label_R.position.set(R + 0.45, h - 0.22, 0.45);
+                label_R.element.textContent = `R = ${R.toFixed(2)}m`;
+            }
+            if (label_r) {
+                label_r.position.set(r + 0.32, 0.22, 0.65);
+                label_r.element.textContent = `落点 r = ${r.toFixed(2)}m`;
+            }
+            if (label_h) {
+                label_h.position.set(0.85, h + 0.52, 1.0);
+                label_h.element.textContent = `h = ${h.toFixed(2)}m`;
+            }
+            if (label_omega) {
+                label_omega.position.set(-1.65, h + 0.68, -1.45);
+                label_omega.element.textContent = `ω = ${omega.toFixed(2)} rad/s`;
+            }
+        }
+        
+        // 创建雨伞模型
+        function createUmbrellaModel(R, h) {
+            const group = new THREE.Group();
+            const canopyMat = new THREE.MeshStandardMaterial({ color: 0xd44c2f, roughness: 0.4, metalness: 0.1, emissive: 0x331100 });
+            const canopy = new THREE.Mesh(new THREE.ConeGeometry(R + 0.02, 0.26, 48, 1), canopyMat);
+            canopy.position.y = 0.05;
+            canopy.castShadow = true;
+            group.add(canopy);
+            
+            const underMat = new THREE.MeshStandardMaterial({ color: 0xaa5533, roughness: 0.6 });
+            const underDisc = new THREE.Mesh(new THREE.CircleGeometry(R, 32), underMat);
+            underDisc.rotation.x = -Math.PI / 2;
+            underDisc.position.y = -0.04;
+            underDisc.castShadow = true;
+            group.add(underDisc);
+            
+            const edgeRingGeo = new THREE.TorusGeometry(R, 0.04, 32, 120);
+            const edgeMat = new THREE.MeshStandardMaterial({ color: 0xffaa66, metalness: 0.7 });
+            const edgeRing = new THREE.Mesh(edgeRingGeo, edgeMat);
+            edgeRing.rotation.x = Math.PI / 2;
+            edgeRing.position.y = 0.025;
+            group.add(edgeRing);
+            
+            const handleMat = new THREE.MeshStandardMaterial({ color: 0xbc9a6c, metalness: 0.2 });
+            const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.82, 8), handleMat);
+            handle.position.y = -0.55;
+            handle.castShadow = true;
+            group.add(handle);
+            
+            const topMat = new THREE.MeshStandardMaterial({ color: 0xdd8844 });
+            const topCap = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), topMat);
+            topCap.position.y = 0.22;
+            group.add(topCap);
+            
+            group.position.y = h;
+            group.castShadow = true;
+            return group;
+        }
+        
+        // 初始化场景
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x071a3b);
+            scene.fog = new THREE.FogExp2(0x071a3b, 0.006);
+            camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(6.2, 4.0, 7.8);
+            camera.lookAt(0, 1.6, 0);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            labelRenderer.domElement.style.left = '0px';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            document.body.appendChild(labelRenderer.domElement);
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 1.6, 0);
+            controls.zoomSpeed = 1.0;
+            
+            // 地面
+            const gridHelper = new THREE.GridHelper(18, 20, 0x88aaff, 0x335588);
+            gridHelper.position.y = -0.01;
+            gridHelper.material.transparent = true;
+            gridHelper.material.opacity = 0.3;
+            scene.add(gridHelper);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a4d8c, roughness: 0.7, metalness: 0.1, transparent: true, opacity: 0.2 });
+            const groundDisc = new THREE.Mesh(new THREE.CircleGeometry(7.2, 24), groundMat);
+            groundDisc.rotation.x = -Math.PI / 2;
+            groundDisc.position.y = -0.02;
+            groundDisc.receiveShadow = true;
+            scene.add(groundDisc);
+            
+            // 灯光
+            const ambientLight = new THREE.AmbientLight(0x404060);
+            scene.add(ambientLight);
+            const mainLight = new THREE.DirectionalLight(0xfff5e0, 1.1);
+            mainLight.position.set(5, 12, 4);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 1024;
+            scene.add(mainLight);
+            const fillLight = new THREE.PointLight(0x4466cc, 0.5);
+            fillLight.position.set(-2, 3, 3);
+            scene.add(fillLight);
+            const backLight = new THREE.PointLight(0xffaa66, 0.35);
+            backLight.position.set(1, 2.5, -3);
+            scene.add(backLight);
+            
+            // CSS2D文字标签 (简洁)
+            function makeLabel(text, color, pos, fontSize = '0.8rem') {
+                const div = document.createElement('div');
+                div.textContent = text;
+                div.style.color = color;
+                div.style.fontSize = fontSize;
+                div.style.fontWeight = 'bold';
+                div.style.background = 'rgba(0,0,0,0.5)';
+                div.style.padding = '2px 6px';
+                div.style.borderRadius = '16px';
+                div.style.borderLeft = `2px solid ${color}`;
+                const label = new CSS2DObject(div);
+                label.position.copy(pos);
+                scene.add(label);
+                return label;
+            }
+            label_R = makeLabel('R = 1.20m', '#88ff88', new THREE.Vector3(1.6, 2.2, 0.5), '0.75rem');
+            label_r = makeLabel('落点 r = ---', '#ffaa88', new THREE.Vector3(3.0, 0.25, 0.8), '0.75rem');
+            label_h = makeLabel('h = ---', '#aaffdd', new THREE.Vector3(0.9, 3.0, 1.0), '0.75rem');
+            label_omega = makeLabel('ω = ---', '#ffaa66', new THREE.Vector3(-1.7, 3.1, -1.3), '0.75rem');
+            
+            // 落地溅射标记池
+            const markerMatObj = new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0xaa4422, transparent: true });
+            for (let i = 0; i < 40; i++) {
+                const marker = new THREE.Mesh(new THREE.CircleGeometry(0.07, 6), markerMatObj);
+                marker.rotation.x = -Math.PI / 2;
+                marker.position.y = 0.03;
+                marker.visible = false;
+                scene.add(marker);
+                splashMarkers.push(marker);
+            }
+            
+            // 星空粒子
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = [];
+            for (let i = 0; i < 800; i++) {
+                starPos.push((Math.random() - 0.5) * 140);
+                starPos.push((Math.random() - 0.5) * 45);
+                starPos.push((Math.random() - 0.5) * 70 - 35);
+            }
+            starGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(starPos), 3));
+            const starMatP = new THREE.PointsMaterial({ color: 0xaaccff, size: 0.07, transparent: true, opacity: 0.5 });
+            const stars = new THREE.Points(starGeo, starMatP);
+            scene.add(stars);
+        }
+        
+        // 动画循环
+        let lastTimestamp = performance.now() / 1000;
+        function animate() {
+            const now = performance.now() / 1000;
+            const delta = Math.min(0.033, now - lastTimestamp);
+            lastTimestamp = now;
+            
+            if (umbrellaGroup) umbrellaGroup.rotation.y += currentParams.omega * delta * 0.5;
+            if (spinRingObj) spinRingObj.rotation.z += currentParams.omega * delta;
+            if (auraPoints) auraPoints.rotation.y += currentParams.omega * delta * 0.65;
+            
+            for (let drop of waterDrops) {
+                drop.update(now, 0);
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        
+        function onParamsChanged() {
+            currentParams.R = parseFloat(R_slider.value);
+            currentParams.omega = parseFloat(omega_slider.value);
+            currentParams.h = parseFloat(h_slider.value);
+            currentParams.g = parseFloat(g_slider.value);
+            updateUI();
+            rebuildSceneFromParams();
+        }
+        
+        R_slider.addEventListener('input', onParamsChanged);
+        omega_slider.addEventListener('input', onParamsChanged);
+        h_slider.addEventListener('input', onParamsChanged);
+        g_slider.addEventListener('input', onParamsChanged);
+        
+        initScene();
+        onParamsChanged();
+        animate();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        console.log('模拟已启动 | 张兴刚工作室制作 | 控制面板右上角，不遮挡关键动画');
+    </script>
+</body>
+</html>

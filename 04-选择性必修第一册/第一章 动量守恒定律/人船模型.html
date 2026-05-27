@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>人船模型：动量守恒定律 | 精确数据：人对地+0.516m，船对地-0.364m</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #cde3ec 0%, #b2cfdd 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Roboto, 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+            padding: 20px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(4px);
+            border-radius: 2.5rem;
+            padding: 1.2rem 1.8rem 1.8rem 1.8rem;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0,0,0,0.1);
+            width: fit-content;
+            max-width: 1000px;
+            margin: auto;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 1.8rem;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+            background-color: #fef7e8;
+            cursor: pointer;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 950 / 420;
+        }
+        .title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #1e3c4c;
+            margin-bottom: 0.2rem;
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .title span {
+            background: #1e3c4c18;
+            padding: 0 12px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #166b89;
+        }
+        .sub {
+            color: #2c697e;
+            margin-bottom: 0.8rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #bdd9e4;
+            padding-bottom: 0.4rem;
+        }
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            gap: 1.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            background: #eaf3f8cc;
+            border-radius: 2rem;
+            padding: 0.8rem 1.5rem;
+            backdrop-filter: blur(4px);
+        }
+        .stats {
+            display: flex;
+            gap: 1.8rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .stat {
+            background: white;
+            padding: 0.3rem 1.2rem;
+            border-radius: 2rem;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+            font-weight: 600;
+            color: #144d5e;
+            min-width: 160px;
+            text-align: center;
+        }
+        .stat label {
+            font-weight: 500;
+            color: #3f8aa3;
+            margin-right: 0.5rem;
+        }
+        .stat span {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: #0f3b48;
+            font-size: 1.1rem;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        button {
+            background: #2c6e8f;
+            border: none;
+            color: white;
+            font-weight: bold;
+            padding: 0.5rem 1.2rem;
+            border-radius: 3rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            font-family: inherit;
+        }
+        button:hover {
+            background: #1b526d;
+            transform: scale(0.96);
+        }
+        .reset-btn {
+            background: #5f7f8c;
+        }
+        .reset-btn:hover {
+            background: #456671;
+        }
+        .momentum-badge {
+            background: #d9eef5;
+            border-radius: 1.8rem;
+            padding: 0.4rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #135f7a;
+            text-align: center;
+            margin-top: 0.7rem;
+        }
+        footer {
+            font-size: 0.7rem;
+            color: #4f7e92;
+            margin-top: 0.8rem;
+            text-align: center;
+        }
+        .law-equation {
+            font-family: monospace;
+            font-weight: 600;
+        }
+        @media (max-width: 700px) {
+            .card { padding: 1rem; }
+            .info-panel { flex-direction: column; align-items: stretch; }
+            .stats { justify-content: space-between; gap: 0.8rem; }
+            .stat { padding: 0.2rem 0.8rem; min-width: auto; }
+            .stat span { font-size: 0.9rem; }
+            button { padding: 0.4rem 0.9rem; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="container">
+        <div class="title">
+            🚤 人船模型 · 动量守恒定律 
+            <span>精确数据演示 | 人对地+0.516m / 船对地-0.364m</span>
+        </div>
+        <div class="sub">人向右走 → 船向左后退 | 系统不受外力，总动量始终为0</div>
+
+        <canvas id="boatCanvas" width="950" height="420" style="width:100%; height:auto; max-width:950px; aspect-ratio:950/420"></canvas>
+
+        <div class="info-panel">
+            <div class="stats">
+                <div class="stat"><label>🧑 人对地位移</label><span id="personDisp">0.000</span> m</div>
+                <div class="stat"><label>⛵ 船对地位移</label><span id="boatDisp">0.000</span> m</div>
+                <div class="stat"><label>⚖️ 系统总动量</label><span id="totalMomentum">0.00</span> kg·m/s</div>
+            </div>
+            <div class="controls">
+                <button id="moveLeftBtn" style="background:#3f7e5c;">◀ 人向左走 (向左位移)</button>
+                <button id="moveRightBtn" style="background:#2c6e8f;">人向右走 (向右位移) ▶</button>
+                <button id="resetBtn" class="reset-btn">🔄 重置位移</button>
+            </div>
+        </div>
+        <div class="momentum-badge" id="lawMsg">
+            📐 动量守恒: <span class="law-equation">m·v<sub>人</sub> + M·v<sub>船</sub> = 0</span> → 人对地位移与船对地位移满足 <span class="law-equation">m·Δx<sub>人</sub> + M·Δx<sub>船</sub> = 0</span><br>
+            ✅ 当前数据验证: 60kg × 0.516m + 85kg × (-0.364m) = 0
+        </div>
+        <footer>💡 点击按钮使人移动 | 船严格反向运动保持总动量为零 | 位移均相对于地面初始位置</footer>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // ---------- 物理参数 (基于图片数据 M=85kg, m=60kg) ----------
+        const M = 85.0;      // 船质量 (kg)
+        const m = 60.0;      // 人质量 (kg)
+        const totalMass = m + M;   // 145 kg
+        
+        // 目标演示数据: 人对地位移 0.516 m，船对地位移 -0.364 m 时严格满足动量守恒
+        // 为了使动画能精确到达这个状态，我们设置步长使得用户点击几次后位移接近此值
+        // 同时位移比例始终满足动量守恒: Δx_person / Δx_boat = -M/m = -85/60 = -1.4167
+        
+        // 几何约束: 船半长(米) 用于视觉及人移动边界，确保人在船上范围
+        const BOAT_HALF_LEN = 2.8;       // 船总长5.6米，给人足够移动空间
+        const MIN_REL = -BOAT_HALF_LEN + 0.3;   // 左端极限 (相对船质心)
+        const MAX_REL = BOAT_HALF_LEN - 0.3;    // 右端极限
+        
+        // 画布边界限制船质心移动范围 (避免超出视觉范围)
+        const MIN_BOAT_X = -4.8;
+        const MAX_BOAT_X = 4.8;
+        
+        // --------------------------------------------------------------
+        // 核心状态： 
+        // 初始状态: 船质心位于 x=0 处，人位于船最左端（左舷边缘）
+        // 位移 = 当前位置 - 初始位置。
+        // --------------------------------------------------------------
+        
+        const BOAT_INIT_X = 0.0;
+        const PERSON_REL_INIT = MIN_REL;   // 站在最左端
+        
+        let personRel = PERSON_REL_INIT;
+        let boatX = BOAT_INIT_X;
+        
+        // 质心守恒计算 (系统总质心固定)
+        let initialCm = 0.0;
+        
+        function computeInitialCM() {
+            let initPersonAbs = BOAT_INIT_X + PERSON_REL_INIT;
+            return (m * initPersonAbs + M * BOAT_INIT_X) / totalMass;
+        }
+        
+        function updateBoatXFromPersonRel() {
+            return initialCm - (m / totalMass) * personRel;
+        }
+        
+        function isMoveValid(newPersonRel) {
+            if (newPersonRel < MIN_REL || newPersonRel > MAX_REL) return false;
+            let newBoatX = initialCm - (m / totalMass) * newPersonRel;
+            if (newBoatX < MIN_BOAT_X || newBoatX > MAX_BOAT_X) return false;
+            return true;
+        }
+        
+        // 步长设计：使人对地位移能够逐步达到 0.516 m 左右
+        // 由于 Δx_person = ΔpersonRel * (M/totalMass) = ΔpersonRel * (85/145) ≈ ΔpersonRel * 0.5862
+        // 要让 Δx_person = 0.516，需要 ΔpersonRel ≈ 0.516 / 0.5862 ≈ 0.88 m
+        // 分4次点击，每次步长 0.22 m 相对位移，可达到 0.88 m 相对位移，从而人对地位移约0.516m
+        const STEP_SIZE = 0.22;   // 米 (相对船移动步长)
+        
+        // 初始绝对坐标记录 (用于位移计算)
+        let initPersonAbs = BOAT_INIT_X + PERSON_REL_INIT;
+        let initBoatX = BOAT_INIT_X;
+        
+        function stepPersonRel(delta_rel) {
+            let newRel = personRel + delta_rel;
+            if (!isMoveValid(newRel)) {
+                const msgDiv = document.getElementById("lawMsg");
+                msgDiv.style.backgroundColor = "#ffe0cc";
+                msgDiv.innerHTML = "⚠️ 到达船边缘或边界，无法继续移动 (动量守恒依然成立) ⚠️";
+                setTimeout(()=>{
+                    msgDiv.style.backgroundColor = "";
+                    msgDiv.innerHTML = "📐 动量守恒: <span class=\"law-equation\">m·v<sub>人</sub> + M·v<sub>船</sub> = 0</span> → 人对地位移与船对地位移满足 <span class=\"law-equation\">m·Δx<sub>人</sub> + M·Δx<sub>船</sub> = 0</span><br>✅ 当前数据验证: 60kg × 0.516m + 85kg × (-0.364m) = 0";
+                }, 1500);
+                return false;
+            }
+            personRel = newRel;
+            boatX = updateBoatXFromPersonRel();
+            updateUI();
+            drawCanvas();
+            return true;
+        }
+        
+        function resetSimulation() {
+            personRel = PERSON_REL_INIT;
+            boatX = BOAT_INIT_X;
+            boatX = updateBoatXFromPersonRel();
+            if (boatX < MIN_BOAT_X) boatX = MIN_BOAT_X;
+            if (boatX > MAX_BOAT_X) boatX = MAX_BOAT_X;
+            initPersonAbs = boatX + personRel;
+            initBoatX = boatX;
+            updateUI();
+            drawCanvas();
+            const msgDiv = document.getElementById("lawMsg");
+            msgDiv.style.backgroundColor = "#c2e4f0";
+            msgDiv.innerHTML = "✨ 已重置: 人回到船最左端，所有位移归零 ✨";
+            setTimeout(()=>{
+                msgDiv.style.backgroundColor = "";
+                msgDiv.innerHTML = "📐 动量守恒: <span class=\"law-equation\">m·v<sub>人</sub> + M·v<sub>船</sub> = 0</span> → 人对地位移与船对地位移满足 <span class=\"law-equation\">m·Δx<sub>人</sub> + M·Δx<sub>船</sub> = 0</span><br>✅ 当前数据验证: 60kg × 0.516m + 85kg × (-0.364m) = 0";
+            }, 1800);
+        }
+        
+        function moveLeft() {
+            stepPersonRel(-STEP_SIZE);
+        }
+        
+        function moveRight() {
+            stepPersonRel(STEP_SIZE);
+        }
+        
+        function updateUI() {
+            const currentPersonAbs = boatX + personRel;
+            const currentBoatX = boatX;
+            const personDisp = currentPersonAbs - initPersonAbs;
+            const boatDisp = currentBoatX - initBoatX;
+            
+            document.getElementById("personDisp").innerText = personDisp.toFixed(3);
+            document.getElementById("boatDisp").innerText = boatDisp.toFixed(3);
+            document.getElementById("totalMomentum").innerText = "0.00";
+            
+            // 当位移接近目标演示数据时，高亮显示提示
+            if (Math.abs(personDisp - 0.516) < 0.02 && Math.abs(boatDisp + 0.364) < 0.02) {
+                const dispSpan = document.getElementById("personDisp");
+                dispSpan.style.color = "#c7254e";
+                dispSpan.style.fontWeight = "bold";
+                setTimeout(() => { dispSpan.style.color = "#0f3b48"; }, 800);
+            }
+        }
+        
+        // ---------- 绘图模块 ----------
+        const canvas = document.getElementById("boatCanvas");
+        const ctx = canvas.getContext("2d");
+        
+        function setCanvasSize() {
+            canvas.width = 950;
+            canvas.height = 420;
+        }
+        setCanvasSize();
+        
+        const PHYS_MIN = -6.0;
+        const PHYS_MAX = 6.0;
+        function physToPixel(x) {
+            let t = (x - PHYS_MIN) / (PHYS_MAX - PHYS_MIN);
+            return t * canvas.width;
+        }
+        
+        function drawWaterBackground() {
+            ctx.fillStyle = "#c4e2ef";
+            ctx.fillRect(0, canvas.height-75, canvas.width, 75);
+            for (let i=0; i<20; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i*70, canvas.height-72);
+                ctx.quadraticCurveTo(i*70+35, canvas.height-80, i*70+70, canvas.height-72);
+                ctx.strokeStyle = "#aad0e0";
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+            }
+            ctx.fillStyle = "#ffffff30";
+            for (let s=0; s<5; s++) {
+                ctx.beginPath();
+                ctx.arc(100+s*200, canvas.height-40, 15, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+        
+        function drawBoat(boatCenterX) {
+            const cx = physToPixel(boatCenterX);
+            const halfLenWorld = BOAT_HALF_LEN;
+            const leftWorld = boatCenterX - halfLenWorld;
+            const rightWorld = boatCenterX + halfLenWorld;
+            const leftPx = physToPixel(leftWorld);
+            const rightPx = physToPixel(rightWorld);
+            const widthPx = rightPx - leftPx;
+            const yDeck = canvas.height - 82;
+            const hullHeight = 28;
+            
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = "rgba(0,0,0,0.2)";
+            ctx.fillStyle = "#A56B2F";
+            ctx.beginPath();
+            ctx.moveTo(leftPx-3, yDeck+4);
+            ctx.lineTo(leftPx+5, yDeck+14);
+            ctx.lineTo(rightPx-5, yDeck+14);
+            ctx.lineTo(rightPx+3, yDeck+4);
+            ctx.fill();
+            ctx.fillStyle = "#CB7B3C";
+            ctx.fillRect(leftPx, yDeck - hullHeight + 6, widthPx, hullHeight-4);
+            ctx.fillStyle = "#E2A15C";
+            ctx.fillRect(leftPx+6, yDeck - hullHeight + 2, widthPx-12, 8);
+            ctx.fillStyle = "#8B5A2B";
+            ctx.fillRect(leftPx+2, yDeck - hullHeight + 10, widthPx-4, 6);
+            ctx.fillStyle = "#7A5B3A";
+            ctx.fillRect(cx-4, yDeck - hullHeight - 12, 8, 42);
+            ctx.fillStyle = "#E66742";
+            ctx.beginPath();
+            ctx.moveTo(cx+4, yDeck - hullHeight - 6);
+            ctx.lineTo(cx+28, yDeck - hullHeight - 2);
+            ctx.lineTo(cx+4, yDeck - hullHeight + 6);
+            ctx.fill();
+            ctx.fillStyle = "#F2BD7A";
+            ctx.beginPath();
+            ctx.moveTo(cx-4, yDeck - hullHeight - 8);
+            ctx.lineTo(cx-24, yDeck - hullHeight - 2);
+            ctx.lineTo(cx-4, yDeck - hullHeight + 4);
+            ctx.fill();
+            ctx.fillStyle = "#C97E3A";
+            for(let i=-1;i<=1;i++) {
+                ctx.fillRect(cx + i*15 - 5, yDeck - hullHeight + 16, 5, 7);
+            }
+            ctx.shadowBlur = 0;
+        }
+        
+        function drawPerson(boatCenterX, personRelX) {
+            const personAbsX = boatCenterX + personRelX;
+            const px = physToPixel(personAbsX);
+            const pyFeet = canvas.height - 80;
+            ctx.fillStyle = "#FADBAD";
+            ctx.beginPath();
+            ctx.arc(px, pyFeet - 23, 12, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = "#5C4033";
+            ctx.beginPath();
+            ctx.ellipse(px-3, pyFeet-27, 2, 3, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(px+3, pyFeet-27, 2, 3, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = "#2F231E";
+            ctx.beginPath();
+            ctx.ellipse(px, pyFeet-32, 8, 7, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = "#4F8BA0";
+            ctx.fillRect(px-10, pyFeet-18, 20, 23);
+            ctx.fillStyle = "#2C6F86";
+            ctx.fillRect(px-7, pyFeet-12, 14, 15);
+            ctx.beginPath();
+            ctx.moveTo(px-10, pyFeet-16);
+            ctx.lineTo(px-18, pyFeet-10);
+            ctx.lineTo(px-11, pyFeet-12);
+            ctx.fillStyle = "#FADBAD";
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(px+10, pyFeet-16);
+            ctx.lineTo(px+18, pyFeet-10);
+            ctx.lineTo(px+11, pyFeet-12);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(px, pyFeet-21, 6, 0.1, Math.PI - 0.1);
+            ctx.strokeStyle = "#A5562F";
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+        }
+        
+        function drawDisplacementHints() {
+            const currentPersonAbs = boatX + personRel;
+            const currentBoat = boatX;
+            const personDisp = currentPersonAbs - initPersonAbs;
+            const boatDisp = currentBoat - initBoatX;
+            
+            if (Math.abs(personDisp) > 0.01) {
+                ctx.font = "bold 14px 'Segoe UI'";
+                ctx.fillStyle = "#226622";
+                const arrowX = physToPixel(currentPersonAbs);
+                if (personDisp > 0) ctx.fillText(`→ 人对地位移 +${personDisp.toFixed(3)} m`, arrowX+15, physToPixel(currentPersonAbs)-20);
+                else ctx.fillText(`← 人对地位移 ${personDisp.toFixed(3)} m`, arrowX-95, physToPixel(currentPersonAbs)-20);
+            }
+            if (Math.abs(boatDisp) > 0.01) {
+                ctx.fillStyle = "#AA4A2E";
+                const boatPx = physToPixel(currentBoat);
+                if (boatDisp > 0) ctx.fillText(`船对地位移 +${boatDisp.toFixed(3)} m →`, boatPx+25, canvas.height-68);
+                else ctx.fillText(`← 船对地位移 ${boatDisp.toFixed(3)} m`, boatPx-100, canvas.height-68);
+            }
+        }
+        
+        function drawPhysicsLabels() {
+            ctx.font = "500 12px 'Segoe UI'";
+            ctx.fillStyle = "#2b6d7a";
+            ctx.fillText(`⛵ M = ${M} kg  |  🧑 m = ${m} kg  |  动量守恒: m·Δx人 + M·Δx船 = 0`, 20, 38);
+            
+            const currentPersonAbs = boatX + personRel;
+            const currentBoat = boatX;
+            const personDisp = currentPersonAbs - initPersonAbs;
+            const boatDisp = currentBoat - initBoatX;
+            const checkSum = (m * personDisp + M * boatDisp).toFixed(5);
+            ctx.font = "italic 11px monospace";
+            ctx.fillStyle = "#2F7D6B";
+            ctx.fillText(`验算: ${m}×${personDisp.toFixed(3)} + ${M}×${boatDisp.toFixed(3)} = ${checkSum} ≈ 0`, canvas.width-290, 62);
+            
+            if (Math.abs(personDisp - 0.516) < 0.02 && Math.abs(boatDisp + 0.364) < 0.02) {
+                ctx.font = "bold 11px 'Segoe UI'";
+                ctx.fillStyle = "#C0392B";
+                ctx.fillText("⭐ 精确达到图片数据: 人对地+0.516m / 船对地-0.364m ⭐", canvas.width-360, 85);
+            }
+        }
+        
+        function drawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawWaterBackground();
+            drawBoat(boatX);
+            drawPerson(boatX, personRel);
+            drawDisplacementHints();
+            drawPhysicsLabels();
+        }
+        
+        function bindEvents() {
+            document.getElementById("moveLeftBtn").addEventListener("click", moveLeft);
+            document.getElementById("moveRightBtn").addEventListener("click", moveRight);
+            document.getElementById("resetBtn").addEventListener("click", resetSimulation);
+        }
+        
+        function init() {
+            initialCm = computeInitialCM();
+            personRel = PERSON_REL_INIT;
+            boatX = BOAT_INIT_X;
+            boatX = updateBoatXFromPersonRel();
+            initPersonAbs = boatX + personRel;
+            initBoatX = boatX;
+            bindEvents();
+            updateUI();
+            drawCanvas();
+        }
+        
+        function fullUpdate() {
+            updateUI();
+            drawCanvas();
+        }
+        
+        const originalStep = stepPersonRel;
+        stepPersonRel = function(delta) {
+            let res = originalStep(delta);
+            fullUpdate();
+            return res;
+        };
+        
+        const originalReset = resetSimulation;
+        resetSimulation = function() {
+            originalReset();
+            fullUpdate();
+        };
+        
+        window.moveLeft = moveLeft;
+        window.moveRight = moveRight;
+        window.resetSimulation = resetSimulation;
+        
+        init();
+    })();
+</script>
+</body>
+</html>
